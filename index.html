@@ -768,10 +768,25 @@ function drawSlide(idx, q, alpha, hl){
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
     ctx.fillText('Simpan & bagikan video ini', 90, y + 30);
   } else {
-    drawCaption(s.say, 1150, 84, 880, 'bold 62px system-ui, sans-serif', hl);
+    fitCaption(s.say, hl);
   }
 
   ctx.restore();
+}
+
+// Caption dibuat sebesar mungkin tetapi tetap di area aman: dari bawah label sampai di atas area tombol Reels/Shorts.
+function fitCaption(text, hl){
+  const BOTTOM = 1640, MAX_H = 600;
+  let size = 62, lh = 84, lines = [];
+  for(; size >= 40; size -= 2){
+    ctx.font = `bold ${size}px system-ui, sans-serif`;
+    lines = wrap(text, 880);
+    lh = Math.round(size * 1.36);
+    if(lines.length * lh + 50 <= MAX_H) break;
+  }
+  const boxH = lines.length * lh + 50;
+  const y = (BOTTOM - boxH) + 70;
+  drawCaption(text, y, lh, 880, `bold ${size}px system-ui, sans-serif`, hl);
 }
 
 function drawEmpty(){
@@ -814,8 +829,7 @@ function startMusic(){
   filter.type = 'lowpass';
   filter.frequency.value = st.cutoff;
   filter.connect(musicGain);
-  musicGain.connect(actx.destination);
-  if(recDest) musicGain.connect(recDest);
+  musicGain.connect(getBus());
 
   musicNodes = [];
   for(let v = 0; v < 3; v++){
@@ -907,8 +921,7 @@ function startCustom(){
   musicGain = actx.createGain();
   musicGain.gain.setValueAtTime(0, t);
   musicGain.gain.linearRampToValueAtTime(0.08 * musicScale, t + 2);
-  musicGain.connect(actx.destination);
-  if(recDest) musicGain.connect(recDest);
+  musicGain.connect(getBus());
   const src = actx.createBufferSource();
   src.buffer = customMusic;
   src.loop = true;
@@ -1041,6 +1054,26 @@ function splitSpeech(text){
 }
 
 let playT0 = 0;
+let masterComp = null, masterBus = null;
+
+// Satu jalur audio master: penguat -> kompresor. Narasi dan musik masuk ke sini agar volumenya rata.
+function getBus(){
+  if(!masterBus){
+    const g = actx.createGain();
+    g.gain.value = 1.5;
+    const c = actx.createDynamicsCompressor();
+    c.threshold.value = -22;
+    c.knee.value = 10;
+    c.ratio.value = 3.5;
+    c.attack.value = 0.005;
+    c.release.value = 0.25;
+    g.connect(c);
+    c.connect(actx.destination);
+    masterBus = g;
+    masterComp = c;
+  }
+  return masterBus;
+}
 let speakToken = 0;
 
 // Setiap slide berjalan sampai narasinya selesai. Tidak ada pemotongan berbasis waktu.
@@ -1080,8 +1113,7 @@ function say(i){
       const part = s.audio[k++];
       const src = actx.createBufferSource();
       src.buffer = part.buf;
-      src.connect(actx.destination);
-      if(recDest) src.connect(recDest);
+      src.connect(getBus());
       narrPart = { off: part.off, text: part.text, t0: actx.currentTime, dur: part.buf.duration };
       src.onended = playPart;
       src.start();
@@ -1166,6 +1198,8 @@ function startServerPlayback(record){
   ensureAudio();
   if(record){
     recDest = actx.createMediaStreamDestination();
+    getBus();
+    masterComp.connect(recDest);
     const stream = new MediaStream([...cv.captureStream(30).getVideoTracks(), ...recDest.stream.getAudioTracks()]);
     const types = ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm'];
     const mime = types.find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
