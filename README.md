@@ -10,7 +10,7 @@ dan musik latar dibuat langsung oleh browser sehingga bebas hak cipta.
 - Kotak teks terisi otomatis dan bisa diedit sebelum video dibuat
 - Satu gambar thumbnail artikel dipakai sebagai latar seluruh video (jika tidak ada, dicari di Wikimedia Commons)
 - Ganti atau hapus gambar tiap slide jika ingin memakai gambar lain (dari file atau link)
-- Format **Bola 40 detik** (Hook, Inti, Fakta, Dampak, Penutup) atau **Bebas**
+- Format **Bola** (Hook, Inti, Fakta, Dampak, Penutup) tanpa batas durasi, atau **Bebas**
 - Subtitle (.srt) dan naskah (.txt) untuk caption atau voice-over
 - Narasi dengan teks yang menyorot kata yang sedang dibacakan
 - Musik latar: Bola (stadion, default), Energik, Berita (serius), Santai, file musik sendiri, atau tanpa musik
@@ -46,6 +46,22 @@ Mode ini paling andal karena pengambilan link berjalan dari komputermu sendiri.
 1. Pastikan Python 3 terpasang.
 2. Di folder ini, jalankan `python server.py` (Windows: `py server.py`).
 3. Buka http://127.0.0.1:8000 di Chrome atau Edge.
+
+## Narasi suara masuk ke video (disarankan)
+
+Narasi dibuat oleh `server.py` sebagai file audio, lalu dicampur langsung ke video.
+Dengan cara ini suara pasti ikut terunduh, dan kamu tidak perlu berbagi tab.
+
+1. Pasang Python 3 dan mesin suara, pilih salah satu:
+   - Offline (suara sistem): `pip install pyttsx3`
+     Di Windows, pastikan suara bahasa Indonesia terpasang (Settings → Time & language → Speech).
+   - Online (suara Google): `pip install gTTS` (membutuhkan internet)
+2. Jalankan `python server.py`, lalu buka http://127.0.0.1:8000
+3. Jika halaman menampilkan "Narasi server aktif", klik **⬇ Buat & Unduh Otomatis**.
+   Tidak ada jendela berbagi layar yang muncul.
+
+Jika server tidak berjalan, aplikasi memakai suara browser dan kamu perlu memilih
+**Bagikan audio tab** saat merekam.
 
 ## Merekam video
 
